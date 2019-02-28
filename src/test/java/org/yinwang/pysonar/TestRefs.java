@@ -11,7 +11,7 @@ public class TestRefs
     @Test
     public void testRefs()
     {
-        List<String> failed = TestInference.testAll("tests", false);
+        List<String> failed = TestInference.Companion.testAll("tests", false);
         if (failed != null)
         {
             String msg = "Some tests failed. ";
