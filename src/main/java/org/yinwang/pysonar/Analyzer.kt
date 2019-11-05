@@ -1,21 +1,16 @@
 package org.yinwang.pysonar
 
+import com.google.common.collect.ArrayListMultimap
+import com.google.common.collect.ListMultimap
 import org.yinwang.pysonar.ast.Name
 import org.yinwang.pysonar.ast.Node
 import org.yinwang.pysonar.ast.Url
-import org.yinwang.pysonar.types.ClassType
-import org.yinwang.pysonar.types.FunType
-import org.yinwang.pysonar.types.ModuleType
-import org.yinwang.pysonar.types.Type
-import org.yinwang.pysonar.types.UnionType
+import org.yinwang.pysonar.types.*
 import org.yinwang.pysonar.visitor.TypeInferencer
 
 import java.io.File
 import java.net.URL
-import java.util.ArrayList
-import java.util.HashMap
-import java.util.HashSet
-import java.util.LinkedHashMap
+import java.util.*
 
 
 class Analyzer @JvmOverloads constructor(options: MutableMap<String, Any>? = null) {
@@ -25,10 +20,10 @@ class Analyzer @JvmOverloads constructor(options: MutableMap<String, Any>? = nul
     var loadedFiles: MutableList<String> = ArrayList()
     var globaltable = State(null, State.StateType.GLOBAL)
     var allBindings: MutableList<Binding> = ArrayList()
-    private val references = LinkedHashMap<Node, List<Binding>>()
+    var references: ListMultimap<Node, Binding> = ArrayListMultimap.create()
     var resolved: Set<Name> = HashSet()
     var unresolved: Set<Name> = HashSet()
-    var semanticErrors: MutableMap<String, List<Diagnostic>> = HashMap()
+    var semanticErrors: ListMultimap<String, Diagnostic> = ArrayListMultimap.create()
     var cwd: String? = null
     var nCalled = 0
     var multilineFunType = false
@@ -73,7 +68,7 @@ class Analyzer @JvmOverloads constructor(options: MutableMap<String, Any>? = nul
             val duration = `$`.formatTime(System.currentTimeMillis() - stats.getInt("startTime")!!)
             sb.append("\n- total time: $duration")
             sb.append("\n- modules loaded: " + loadedFiles.size)
-            sb.append("\n- semantic problems: " + semanticErrors.size)
+            sb.append("\n- semantic problems: " + semanticErrors.size())
             sb.append("\n- failed to parse: " + failedToParse.size)
             var nDef = 0
             var nXRef = 0
@@ -84,7 +79,7 @@ class Analyzer @JvmOverloads constructor(options: MutableMap<String, Any>? = nul
 
             sb.append("\n- number of definitions: $nDef")
             sb.append("\n- number of cross references: $nXRef")
-            sb.append("\n- number of references: " + getReferences().size)
+            sb.append("\n- number of references: " + references.size())
 
             val nResolved = resolved.size.toLong()
             val nUnresolved = unresolved.size.toLong()
@@ -230,18 +225,14 @@ class Analyzer @JvmOverloads constructor(options: MutableMap<String, Any>? = nul
 
 
     fun getDiagnosticsForFile(file: String): List<Diagnostic> {
-        val errs = semanticErrors[file]
+        val errs = semanticErrors.get(file)
         return errs ?: ArrayList()
     }
 
 
     fun putRef(node: Node, bs: Collection<Binding>) {
         if (node !is Url) {
-            var bindings: MutableList<Binding>? = references[node]
-            if (bindings == null) {
-                bindings = ArrayList(1)
-                references[node] = bindings
-            }
+            val bindings = references.get(node)
             for (b in bs) {
                 if (!bindings.contains(b)) {
                     bindings.add(b)
@@ -256,11 +247,6 @@ class Analyzer @JvmOverloads constructor(options: MutableMap<String, Any>? = nul
         val bs = ArrayList<Binding>()
         bs.add(b)
         putRef(node, bs)
-    }
-
-
-    fun getReferences(): Map<Node, List<Binding>> {
-        return references
     }
 
 
@@ -282,17 +268,7 @@ class Analyzer @JvmOverloads constructor(options: MutableMap<String, Any>? = nul
 
     internal fun addFileErr(file: String, begin: Int, end: Int, msg: String) {
         val d = Diagnostic(file, Diagnostic.Category.ERROR, begin, end, msg)
-        getFileErrs(file, semanticErrors).add(d)
-    }
-
-
-    internal fun getFileErrs(file: String, map: MutableMap<String, List<Diagnostic>>): MutableList<Diagnostic> {
-        var msgs: List<Diagnostic>? = map[file]
-        if (msgs == null) {
-            msgs = ArrayList()
-            map[file] = msgs
-        }
-        return msgs
+        semanticErrors.put(file, d)
     }
 
 
@@ -599,7 +575,7 @@ class Analyzer @JvmOverloads constructor(options: MutableMap<String, Any>? = nul
     override fun toString(): String {
         return "(analyzer:" +
                 "[" + allBindings.size + " bindings] " +
-                "[" + references.size + " refs] " +
+                "[" + references.size() + " refs] " +
                 "[" + loadedFiles.size + " files] " +
                 ")"
     }

@@ -45,7 +45,7 @@ interface Visitor1<T, P> {
             NodeType.INDEX -> return visit(node as Index, param)
             NodeType.KEYWORD -> return visit(node as Keyword, param)
             NodeType.LISTCOMP -> return visit(node as ListComp, param)
-            NodeType.MODULE -> return visit(node as Module, param)
+            NodeType.MODULE -> return visit(node as PyModule, param)
             NodeType.NAME -> return visit(node as Name, param)
             NodeType.NODE -> return visit(node, param)
             NodeType.PASS -> return visit(node as Pass, param)
@@ -129,7 +129,7 @@ interface Visitor1<T, P> {
     fun visit(node: Index, param: P): T
     fun visit(node: Keyword, param: P): T
     fun visit(node: ListComp, param: P): T
-    fun visit(node: Module, param: P): T
+    fun visit(node: PyModule, param: P): T
     fun visit(node: Name, param: P): T
     fun visit(node: Pass, param: P): T
     fun visit(node: Print, param: P): T

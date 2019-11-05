@@ -117,7 +117,7 @@ class Binding(id: String, var node: Node, var type: Type       // inferred type
         if (parent is FunctionDef && parent.name === node || parent is ClassDef && parent.name === node) {
             bodyStart = parent.start
             bodyEnd = parent.end
-        } else if (node is Module) {
+        } else if (node is PyModule) {
             name = node.name
             start = 0
             end = 0

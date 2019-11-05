@@ -93,7 +93,7 @@ class Parser {
 
         val map = o as Map<String, Any>
 
-        val type = map["type"] as String
+        val type = map["pysonar_node_type"] as String
         val startDouble = map["start"] as Double
         val endDouble = map["end"] as Double
         val lineDouble = map["lineno"] as Double
@@ -107,20 +107,20 @@ class Parser {
 
         if (type == "Module") {
             val b = convertBlock(map["body"])
-            return Module(b, file, start, end, line, col)
+            return PyModule(b, file, start, end, line, col)
         }
 
         if (type == "alias") {         // lower case alias
             val qname = map["name"] as String
             val names = segmentQname(qname, start + "import ".length, false)
             val asname = if (map["asname"] == null) null else Name(map["asname"] as String)
-            return Alias(names, asname!!, file!!, start, end, line, col)
+            return Alias(names, asname, file, start, end, line, col)
         }
 
         if (type == "Assert") {
             val test = convert(map["test"])
             val msg = convert(map["msg"])
-            return Assert(test!!, msg!!, file!!, start, end, line, col)
+            return Assert(test, msg, file, start, end, line, col)
         }
 
         // assign could be x=y=z=1
@@ -130,18 +130,18 @@ class Parser {
             val targets = convertList<Node>(map["targets"])
             val value = convert(map["value"])
             if (targets!!.size == 1) {
-                return Assign(targets[0], value!!, file!!, start, end, line, col)
+                return Assign(targets[0], value!!, file, start, end, line, col)
             } else {
                 val assignments = ArrayList<Node>()
                 val lastTarget = targets[targets.size - 1]
-                assignments.add(Assign(lastTarget, value!!, file!!, start, end, line, col))
+                assignments.add(Assign(lastTarget, value!!, file, start, end, line, col))
 
                 for (i in targets.size - 2 downTo 0) {
-                    val nextAssign = Assign(targets[i], lastTarget, file!!, start, end, line, col)
+                    val nextAssign = Assign(targets[i], lastTarget, file, start, end, line, col)
                     assignments.add(nextAssign)
                 }
 
-                return Block(assignments, file!!, start, end, line, col)
+                return Block(assignments, file, start, end, line, col)
             }
         }
 
@@ -151,15 +151,15 @@ class Parser {
             if (attr == null) {
                 attr = Name(map["attr"] as String)
             }
-            return Attribute(value!!, attr, file!!, start, end, line, col)
+            return Attribute(value!!, attr, file, start, end, line, col)
         }
 
         if (type == "AugAssign") {
             val target = convert(map["target"])
             val value = convert(map["value"])
             val op = convertOp(map["op"])
-            val operation = BinOp(op, target!!, value!!, file!!, target.start, value.end, value.line, value.col)
-            return Assign(target, operation, file!!, start, end, line, col)
+            val operation = BinOp(op, target!!, value!!, file, target.start, value.end, value.line, value.col)
+            return Assign(target, operation, file, start, end, line, col)
         }
 
         if (type == "BinOp") {
@@ -168,34 +168,34 @@ class Parser {
             val op = convertOp(map["op"])
 
             // desugar complex operators
-            if (op === Op.NotEqual) {
-                val eq = BinOp(Op.Equal, left!!, right!!, file!!, start, end, line, col)
-                return UnaryOp(Op.Not, eq, file!!, start, end, line, col)
+            if (op == Op.NotEqual) {
+                val eq = BinOp(Op.Equal, left!!, right!!, file, start, end, line, col)
+                return UnaryOp(Op.Not, eq, file, start, end, line, col)
             }
 
-            if (op === Op.LtE) {
-                val lt = BinOp(Op.Lt, left!!, right!!, file!!, start, end, line, col)
-                val eq = BinOp(Op.Eq, left, right, file!!, start, end, line, col)
-                return BinOp(Op.Or, lt, eq, file!!, start, end, line, col)
+            if (op == Op.LtE) {
+                val lt = BinOp(Op.Lt, left!!, right!!, file, start, end, line, col)
+                val eq = BinOp(Op.Eq, left, right, file, start, end, line, col)
+                return BinOp(Op.Or, lt, eq, file, start, end, line, col)
             }
 
-            if (op === Op.GtE) {
-                val gt = BinOp(Op.Gt, left!!, right!!, file!!, start, end, line, col)
-                val eq = BinOp(Op.Eq, left, right, file!!, start, end, line, col)
-                return BinOp(Op.Or, gt, eq, file!!, start, end, line, col)
+            if (op == Op.GtE) {
+                val gt = BinOp(Op.Gt, left!!, right!!, file, start, end, line, col)
+                val eq = BinOp(Op.Eq, left, right, file, start, end, line, col)
+                return BinOp(Op.Or, gt, eq, file, start, end, line, col)
             }
 
-            if (op === Op.NotIn) {
-                val `in` = BinOp(Op.In, left!!, right!!, file!!, start, end, line, col)
-                return UnaryOp(Op.Not, `in`, file!!, start, end, line, col)
+            if (op == Op.NotIn) {
+                val `in` = BinOp(Op.In, left!!, right!!, file, start, end, line, col)
+                return UnaryOp(Op.Not, `in`, file, start, end, line, col)
             }
 
-            if (op === Op.NotEq) {
-                val `in` = BinOp(Op.Eq, left!!, right!!, file!!, start, end, line, col)
-                return UnaryOp(Op.Not, `in`, file!!, start, end, line, col)
+            if (op == Op.NotEq) {
+                val `in` = BinOp(Op.Eq, left!!, right!!, file, start, end, line, col)
+                return UnaryOp(Op.Not, `in`, file, start, end, line, col)
             }
 
-            return BinOp(op, left!!, right!!, file!!, start, end, line, col)
+            return BinOp(op, left!!, right!!, file, start, end, line, col)
 
         }
 
@@ -205,16 +205,16 @@ class Parser {
                 `$`.die("impossible number of arguments, please fix the Python parser")
             }
             val op = convertOp(map["op"])
-            var ret = BinOp(op, values!![0], values[1], file!!, start, end, line, col)
+            var ret = BinOp(op, values!![0], values[1], file, start, end, line, col)
             for (i in 2 until values.size) {
-                ret = BinOp(op, ret, values[i], file!!, start, end, line, col)
+                ret = BinOp(op, ret, values[i], file, start, end, line, col)
             }
             return ret
         }
 
         if (type == "Bytes") {
             val s = map["s"]
-            return Bytes(s, file!!, start, end, line, col)
+            return Bytes(s, file, start, end, line, col)
         }
 
         if (type == "Call") {
@@ -223,14 +223,14 @@ class Parser {
             val keywords = convertList<Keyword>(map["keywords"])
             val kwargs = convert(map["kwarg"])
             val starargs = convert(map["starargs"])
-            return Call(func!!, args!!, keywords, kwargs!!, starargs!!, file!!, start, end, line, col)
+            return Call(func, args, keywords, kwargs, starargs, file, start, end, line, col)
         }
 
         if (type == "ClassDef") {
             val name = convert(map["name_node"]) as Name?      // hack
             val bases = convertList<Node>(map["bases"])
             val body = convertBlock(map["body"])
-            return ClassDef(name!!, bases!!, body!!, file!!, start, end, line, col)
+            return ClassDef(name!!, bases, body, file, start, end, line, col)
         }
 
         // left-fold Compare into
@@ -238,10 +238,10 @@ class Parser {
             val left = convert(map["left"])
             val ops = convertListOp(map["ops"])
             val comparators = convertList<Node>(map["comparators"])
-            var result: Node = BinOp(ops!![0], left!!, comparators!![0], file!!, start, end, line, col)
+            var result: Node = BinOp(ops!![0], left!!, comparators!![0], file, start, end, line, col)
             for (i in 1 until comparators.size) {
-                val compNext = BinOp(ops[i], comparators[i - 1], comparators[i], file!!, start, end, line, col)
-                result = BinOp(Op.And, result, compNext, file!!, start, end, line, col)
+                val compNext = BinOp(ops[i], comparators[i - 1], comparators[i], file, start, end, line, col)
+                result = BinOp(Op.And, result, compNext, file, start, end, line, col)
             }
             return result
         }
@@ -250,37 +250,37 @@ class Parser {
             val target = convert(map["target"])
             val iter = convert(map["iter"])
             val ifs = convertList<Node>(map["ifs"])
-            return Comprehension(target!!, iter!!, ifs!!, file!!, start, end, line, col)
+            return Comprehension(target, iter, ifs, file, start, end, line, col)
         }
 
         if (type == "Break") {
-            return Break(file!!, start, end, line, col)
+            return Break(file, start, end, line, col)
         }
 
         if (type == "Continue") {
-            return Continue(file!!, start, end, line, col)
+            return Continue(file, start, end, line, col)
         }
 
         if (type == "Delete") {
             val targets = convertList<Node>(map["targets"])
-            return Delete(targets!!, file!!, start, end, line, col)
+            return Delete(targets, file, start, end, line, col)
         }
 
         if (type == "Dict") {
             val keys = convertList<Node>(map["keys"])
             val values = convertList<Node>(map["values"])
-            return Dict(keys!!, values!!, file!!, start, end, line, col)
+            return Dict(keys, values, file, start, end, line, col)
         }
 
         if (type == "DictComp") {
             val key = convert(map["key"])
             val value = convert(map["value"])
             val generators = convertList<Comprehension>(map["generators"])
-            return DictComp(key!!, value!!, generators!!, file!!, start, end, line, col)
+            return DictComp(key, value, generators, file, start, end, line, col)
         }
 
         if (type == "Ellipsis") {
-            return Ellipsis(file!!, start, end, line, col)
+            return Ellipsis(file, start, end, line, col)
         }
 
         if (type == "ExceptHandler") {
@@ -296,19 +296,19 @@ class Parser {
 
             val binder = convert(map["name"])
             val body = convertBlock(map["body"])
-            return Handler(exceptions!!, binder!!, body!!, file!!, start, end, line, col)
+            return Handler(exceptions, binder, body, file, start, end, line, col)
         }
 
         if (type == "Exec") {
             val body = convert(map["body"])
             val globals = convert(map["globals"])
             val locals = convert(map["locals"])
-            return Exec(body!!, globals!!, locals!!, file!!, start, end, line, col)
+            return Exec(body, globals, locals, file, start, end, line, col)
         }
 
         if (type == "Expr") {
             val value = convert(map["value"])
-            return Expr(value!!, file!!, start, end, line, col)
+            return Expr(value, file, start, end, line, col)
         }
 
         if (type == "For" || type == "AsyncFor") {
@@ -316,7 +316,7 @@ class Parser {
             val iter = convert(map["iter"])
             val body = convertBlock(map["body"])
             val orelse = convertBlock(map["orelse"])
-            return For(target!!, iter!!, body!!, orelse!!, type == "AsyncFor", file!!, start, end, line, col)
+            return For(target, iter, body, orelse, type == "AsyncFor", file, start, end, line, col)
         }
 
         if (type == "FunctionDef" || type == "Lambda" || type == "AsyncFunctionDef") {
@@ -353,13 +353,13 @@ class Parser {
                 decors = convertList(map["decorator_list"])
             }
 
-            return FunctionDef(name, args!!, body!!, defaults!!, vararg, kwarg, decors!!, file!!, isAsync, start, end, line, col)
+            return FunctionDef(name, args, body, defaults, vararg, kwarg, decors, file, isAsync, start, end, line, col)
         }
 
         if (type == "GeneratorExp") {
             val elt = convert(map["elt"])
             val generators = convertList<Comprehension>(map["generators"])
-            return GeneratorExp(elt!!, generators!!, file!!, start, end, line, col)
+            return GeneratorExp(elt, generators, file, start, end, line, col)
         }
 
         if (type == "Global") {
@@ -368,7 +368,7 @@ class Parser {
             for (name in names) {
                 nameNodes.add(Name(name))
             }
-            return Global(nameNodes, file!!, start, end, line, col)
+            return Global(nameNodes, file, start, end, line, col)
         }
 
         if (type == "Nonlocal") {
@@ -377,28 +377,28 @@ class Parser {
             for (name in names) {
                 nameNodes.add(Name(name))
             }
-            return Global(nameNodes, file!!, start, end, line, col)
+            return Global(nameNodes, file, start, end, line, col)
         }
 
         if (type == "If") {
             val test = convert(map["test"])
             val body = convertBlock(map["body"])
             val orelse = convertBlock(map["orelse"])
-            return If(test!!, body!!, orelse!!, file!!, start, end, line, col)
+            return If(test!!, body, orelse, file, start, end, line, col)
         }
 
         if (type == "IfExp") {
             val test = convert(map["test"])
             val body = convert(map["body"])
             val orelse = convert(map["orelse"])
-            return IfExp(test!!, body!!, orelse!!, file!!, start, end, line, col)
+            return IfExp(test, body, orelse, file, start, end, line, col)
         }
 
 
         if (type == "Import") {
             val aliases = convertList<Alias>(map["names"])
             locateNames(aliases!!, start)
-            return Import(aliases, file!!, start, end, line, col)
+            return Import(aliases, file, start, end, line, col)
         }
 
         if (type == "ImportFrom") {
@@ -407,34 +407,34 @@ class Parser {
             val moduleSeg = if (module == null) null else segmentQname(module, start + "from ".length + level, true)
             val names = convertList<Alias>(map["names"])
             locateNames(names!!, start)
-            return ImportFrom(moduleSeg!!, names, level, file!!, start, end, line, col)
+            return ImportFrom(moduleSeg, names, level, file, start, end, line, col)
         }
 
         if (type == "Index") {
             val value = convert(map["value"])
-            return Index(value!!, file!!, start, end, line, col)
+            return Index(value, file, start, end, line, col)
         }
 
         if (type == "keyword") {
             val arg = map["arg"] as String
             val value = convert(map["value"])
-            return Keyword(arg, value!!, file!!, start, end, line, col)
+            return Keyword(arg, value!!, file, start, end, line, col)
         }
 
         if (type == "List") {
             val elts = convertList<Node>(map["elts"])
-            return PyList(elts!!, file!!, start, end, line, col)
+            return PyList(elts!!, file, start, end, line, col)
         }
 
         if (type == "Starred") { // f(*[1, 2, 3, 4])
             val value = convert(map["value"])
-            return Starred(value!!, file!!, start, end, line, col)
+            return Starred(value, file, start, end, line, col)
         }
 
         if (type == "ListComp") {
             val elt = convert(map["elt"])
             val generators = convertList<Comprehension>(map["generators"])
-            return ListComp(elt!!, generators!!, file!!, start, end, line, col)
+            return ListComp(elt, generators, file, start, end, line, col)
         }
 
         if (type == "Name") {
@@ -468,9 +468,9 @@ class Parser {
 
             val num_type = map["num_type"] as String
             if (num_type == "int") {
-                return PyInt(map["n"] as String, file!!, start, end, line, col)
+                return PyInt(map["n"] as String, file, start, end, line, col)
             } else if (num_type == "float") {
-                return PyFloat(map["n"] as String, file!!, start, end, line, col)
+                return PyFloat(map["n"] as String, file, start, end, line, col)
             } else {
                 var real = map["real"]
                 var imag = map["imag"]
@@ -489,69 +489,69 @@ class Parser {
                         imag = java.lang.Double.NEGATIVE_INFINITY
                     }
                 }
-                return PyComplex(real as Double, imag as Double, file!!, start, end, line, col)
+                return PyComplex(real as Double, imag as Double, file, start, end, line, col)
             }
         }
 
         if (type == "SetComp") {
             val elt = convert(map["elt"])
             val generators = convertList<Comprehension>(map["generators"])
-            return SetComp(elt!!, generators!!, file!!, start, end, line, col)
+            return SetComp(elt, generators, file, start, end, line, col)
         }
 
         if (type == "Pass") {
-            return Pass(file!!, start, end, line, col)
+            return Pass(file, start, end, line, col)
         }
 
         if (type == "Print") {
             val values = convertList<Node>(map["values"])
             val destination = convert(map["destination"])
-            return Print(destination!!, values!!, file!!, start, end, line, col)
+            return Print(destination, values, file, start, end, line, col)
         }
 
         if (type == "Raise") {
             val exceptionType = convert(map["type"])
             val inst = convert(map["inst"])
             val tback = convert(map["tback"])
-            return Raise(exceptionType!!, inst!!, tback!!, file!!, start, end, line, col)
+            return Raise(exceptionType, inst, tback, file, start, end, line, col)
         }
 
         if (type == "Repr") {
             val value = convert(map["value"])
-            return Repr(value!!, file!!, start, end, line, col)
+            return Repr(value, file, start, end, line, col)
         }
 
         if (type == "Return") {
             val value = convert(map["value"])
-            return Return(value!!, file!!, start, end, line, col)
+            return Return(value, file, start, end, line, col)
         }
 
         if (type == "Await") {
             val value = convert(map["value"])
-            return Return(value!!, file!!, start, end, line, col)
+            return Return(value, file, start, end, line, col)
         }
 
         if (type == "Set") {
             val elts = convertList<Node>(map["elts"])
-            return PySet(elts!!, file!!, start, end, line, col)
+            return PySet(elts, file, start, end, line, col)
         }
 
         if (type == "SetComp") {
             val elt = convert(map["elt"])
             val generators = convertList<Comprehension>(map["generators"])
-            return SetComp(elt!!, generators!!, file!!, start, end, line, col)
+            return SetComp(elt, generators, file, start, end, line, col)
         }
 
         if (type == "Slice") {
             val lower = convert(map["lower"])
             val step = convert(map["step"])
             val upper = convert(map["upper"])
-            return Slice(lower!!, step!!, upper!!, file!!, start, end, line, col)
+            return Slice(lower, step, upper, file, start, end, line, col)
         }
 
         if (type == "ExtSlice") {
             val dims = convertList<Node>(map["dims"])
-            return ExtSlice(dims!!, file!!, start, end, line, col)
+            return ExtSlice(dims, file, start, end, line, col)
         }
 
         if (type == "Str") {
@@ -561,13 +561,13 @@ class Parser {
             } else if (s.length >= 2 && s.startsWith("\"") && s.endsWith("\"")) {
                 s = s.substring(1, s.length - 1)
             }
-            return Str(s, file!!, start, end, line, col)
+            return Str(s, file, start, end, line, col)
         }
 
         if (type == "Subscript") {
             val value = convert(map["value"])
             val slice = convert(map["slice"])
-            return Subscript(value!!, slice, file!!, start, end, line, col)
+            return Subscript(value!!, slice, file, start, end, line, col)
         }
 
         if (type == "Try") {
@@ -575,38 +575,38 @@ class Parser {
             val orelse = convertBlock(map["orelse"])
             val handlers = convertList<Handler>(map["handlers"])
             val finalbody = convertBlock(map["finalbody"])
-            return Try(handlers!!, body!!, orelse!!, finalbody!!, file!!, start, end, line, col)
+            return Try(handlers, body, orelse, finalbody, file, start, end, line, col)
         }
 
         if (type == "TryExcept") {
             val body = convertBlock(map["body"])
             val orelse = convertBlock(map["orelse"])
             val handlers = convertList<Handler>(map["handlers"])
-            return Try(handlers!!, body!!, orelse!!, null!!, file!!, start, end, line, col)
+            return Try(handlers, body, orelse, null, file, start, end, line, col)
         }
 
         if (type == "TryFinally") {
             val body = convertBlock(map["body"])
             val finalbody = convertBlock(map["finalbody"])
-            return Try(null!!, body!!, null!!, finalbody!!, file!!, start, end, line, col)
+            return Try(null, body, null, finalbody, file, start, end, line, col)
         }
 
         if (type == "Tuple") {
             val elts = convertList<Node>(map["elts"])
-            return Tuple(elts!!, file!!, start, end, line, col)
+            return Tuple(elts, file, start, end, line, col)
         }
 
         if (type == "UnaryOp") {
             val op = convertOp(map["op"])
             val operand = convert(map["operand"])
-            return UnaryOp(op, operand!!, file!!, start, end, line, col)
+            return UnaryOp(op, operand, file, start, end, line, col)
         }
 
         if (type == "While") {
             val test = convert(map["test"])
             val body = convertBlock(map["body"])
             val orelse = convertBlock(map["orelse"])
-            return While(test!!, body!!, orelse!!, file!!, start, end, line, col)
+            return While(test, body, orelse, file, start, end, line, col)
         }
 
         if (type == "With" || type == "AsyncWith") {
@@ -618,7 +618,7 @@ class Parser {
 
             // Python 3 puts context_expr and optional_vars inside "items"
             if (context_expr != null) {
-                val item = Withitem(context_expr, optional_vars, file!!, -1, -1, -1, -1)
+                val item = Withitem(context_expr, optional_vars, file, -1, -1, -1, -1)
                 items.add(item)
             } else {
                 val itemsMap = map["items"] as List<Map<String, Any>>
@@ -626,27 +626,27 @@ class Parser {
                 for (m in itemsMap) {
                     context_expr = convert(m["context_expr"])
                     optional_vars = convert(m["optional_vars"])
-                    val item = Withitem(context_expr!!, optional_vars, file!!, -1, -1, -1, -1)
+                    val item = Withitem(context_expr!!, optional_vars, file, -1, -1, -1, -1)
                     items.add(item)
                 }
             }
 
             val isAsync = type == "AsyncWith"
-            return With(items, body!!, file!!, isAsync, start, end, line, col)
+            return With(items, body, file, isAsync, start, end, line, col)
         }
 
         if (type == "Yield") {
             val value = convert(map["value"])
-            return Yield(value!!, file!!, start, end, line, col)
+            return Yield(value, file, start, end, line, col)
         }
 
         if (type == "YieldFrom") {
             val value = convert(map["value"])
-            return Yield(value!!, file!!, start, end, line, col)
+            return Yield(value, file, start, end, line, col)
         }
 
-        `$`.msg("\n[Please Report]: unexpected ast node: " + map["type"])
-        return Unsupported(file!!, start, end, line, col)
+        `$`.msg("\n[Please Report]: unexpected ast node: $type")
+        return Unsupported(file, start, end, line, col)
     }
 
 
@@ -717,7 +717,7 @@ class Parser {
             return if (body == null || body.isEmpty()) {
                 null
             } else {
-                Block(body, file!!, 0, 0, 0, 0)
+                Block(body, file, 0, 0, 0, 0)
             }
         }
     }
@@ -743,7 +743,7 @@ class Parser {
 
 
     fun convertOp(map: Any): Op {
-        val type = (map as Map<String, Any>)["type"] as String
+        val type = (map as Map<String, Any>)["pysonar_node_type"] as String
 
         if (type == "Add" || type == "UAdd") {
             return Op.Add
@@ -916,7 +916,7 @@ class Parser {
         file = filename
         content = `$`.readFile(filename)
 
-        val node2 = parseFileInner(filename, python2Process!!)
+        val node2 = if (python2Process == null) null else parseFileInner(filename, python2Process!!)
         if (node2 != null) {
             return node2
         } else if (python3Process != null) {

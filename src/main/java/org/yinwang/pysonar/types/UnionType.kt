@@ -117,7 +117,11 @@ class UnionType() : Type() {
          * Returns true if t1 == t2 or t1 is a union type that contains t2.
          */
         fun contains(t1: Type, t2: Type): Boolean {
-            return (t1 as? UnionType)?.contains(t2) ?: (t1 == t2)
+            return if (t1 is UnionType) {
+                t1.contains(t2)
+            } else {
+                t1 == t2
+            }
         }
 
 

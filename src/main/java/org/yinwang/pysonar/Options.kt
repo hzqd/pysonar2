@@ -44,7 +44,11 @@ class Options(args: Array<String>) {
 
     fun hasOption(key: String): Boolean {
         val v = optionsMap[key]
-        return v as? Boolean ?: false
+        return if (v is Boolean) {
+            v
+        } else {
+            false
+        }
     }
 
 

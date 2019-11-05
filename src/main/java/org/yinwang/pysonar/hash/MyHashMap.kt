@@ -17,15 +17,11 @@ class MyHashMap<K, V> @JvmOverloads constructor(initialCapacity: Int = DEFAULT_I
 
     init {
         var initialCapacity = initialCapacity
-        if (initialCapacity < 0) {
-            throw IllegalArgumentException("Illegal initial capacity: $initialCapacity")
-        }
+        kotlin.require(initialCapacity >= 0) { "Illegal initial capacity: $initialCapacity" }
         if (initialCapacity > MAXIMUM_CAPACITY) {
             initialCapacity = MAXIMUM_CAPACITY
         }
-        if (loadFactor <= 0 || java.lang.Float.isNaN(loadFactor)) {
-            throw IllegalArgumentException("Illegal load factor: $loadFactor")
-        }
+        kotlin.require(!(loadFactor <= 0 || java.lang.Float.isNaN(loadFactor))) { "Illegal load factor: $loadFactor" }
 
         this.table = arrayOfNulls<Entry<*, *>>(0)
         threshold = initialCapacity
@@ -156,7 +152,7 @@ class MyHashMap<K, V> @JvmOverloads constructor(initialCapacity: Int = DEFAULT_I
         if (isEmpty()) {
             return null
         }
-        val h = key?.let { hash(it) } ?: 0
+        val h = if (key == null) 0 else hash(key)
         val i = slot(h, table.size)
         var prev = table[i]
         var e: Entry<K, V>? = prev
@@ -183,7 +179,7 @@ class MyHashMap<K, V> @JvmOverloads constructor(initialCapacity: Int = DEFAULT_I
 
     internal fun removeMapping(entry: Entry<*, *>): Entry<K, V>? {
         val key = entry.key
-        val hash = key?.let { hash(it) } ?: 0
+        val hash = if (key == null) 0 else hash(key)
         val i = slot(hash, table.size)
         var prev = table[i]
         var e: Entry<K, V>? = prev
@@ -371,9 +367,7 @@ class MyHashMap<K, V> @JvmOverloads constructor(initialCapacity: Int = DEFAULT_I
 
 
         override fun remove() {
-            if (current == null) {
-                throw IllegalStateException()
-            }
+            kotlin.checkNotNull(current)
             if (modCount != expectedModCount) {
                 throw ConcurrentModificationException()
             }
@@ -495,7 +489,7 @@ class MyHashMap<K, V> @JvmOverloads constructor(initialCapacity: Int = DEFAULT_I
         override fun remove(o: Any?): Boolean {
             return if (isEmpty() || o !is Entry<*, *>) {
                 false
-            } else removeMapping(o as Entry<*, *>?) != null
+            } else removeMapping((o as Entry<*, *>?)!!) != null
         }
 
 

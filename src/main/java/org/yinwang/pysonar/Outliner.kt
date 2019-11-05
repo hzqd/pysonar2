@@ -72,17 +72,13 @@ class Outliner {
 
 
         fun setQname(qname: String?) {
-            if (qname == null) {
-                throw IllegalArgumentException("qname param cannot be null")
-            }
+            kotlin.requireNotNull(qname) { "qname param cannot be null" }
             this.qname = qname
         }
 
 
         fun setKind(kind: Binding.Kind?) {
-            if (kind == null) {
-                throw IllegalArgumentException("kind param cannot be null")
-            }
+            kotlin.requireNotNull(kind) { "kind param cannot be null" }
             this.kind = kind
         }
 

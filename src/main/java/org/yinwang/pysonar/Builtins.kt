@@ -1,6 +1,6 @@
 package org.yinwang.pysonar
 
-import org.yinwang.pysonar.ast.Module
+import org.yinwang.pysonar.ast.PyModule
 import org.yinwang.pysonar.ast.Url
 import org.yinwang.pysonar.types.*
 
@@ -170,17 +170,17 @@ class Builtins {
         }
 
 
-        protected fun addFunction(module: ModuleType?, name: String, type: Type?) {
+        protected fun addFunction(module: ModuleType, name: String, type: Type?) {
             val url = if (this.module === module)
-                liburl(module!!.qname + "." + name)
+                liburl(module.qname + "." + name)
             else
-                newLibUrl(module!!.table.path, module.table.path + "." + name)
+                newLibUrl(module.table.path, module.table.path + "." + name)
             module.table.insert(name, url, newFunc(type)!!, FUNCTION)
         }
 
 
         protected fun addFunction(name: String, type: Type?) {
-            addFunction(module, name, type)
+            addFunction(module!!, name, type)
         }
 
 
@@ -220,12 +220,12 @@ class Builtins {
 
 
         protected fun addAttr(name: String, type: Type) {
-            addAttr(table, name, type)
+            addAttr(table!!, name, type)
         }
 
 
-        protected fun addAttr(s: State?, name: String, type: Type?) {
-            s!!.insert(name, liburl(s.path + "." + name), type!!, ATTRIBUTE)
+        protected fun addAttr(s: State, name: String, type: Type?) {
+            s.insert(name, liburl(s.path + "." + name), type!!, ATTRIBUTE)
         }
 
 

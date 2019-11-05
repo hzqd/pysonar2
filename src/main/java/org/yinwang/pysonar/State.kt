@@ -214,11 +214,12 @@ class State {
             return b
         } else {
             val ent = lookupLocal(name)
-            return ent ?: if (parent != null) {
-                parent!!.lookup(name)
-            } else {
-                null
-            }
+            return ent
+                    ?: if (parent != null) {
+                        parent!!.lookup(name)
+                    } else {
+                        null
+                    }
         }
     }
 

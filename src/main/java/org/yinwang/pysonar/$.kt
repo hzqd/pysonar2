@@ -4,13 +4,7 @@ import org.apache.commons.io.FileUtils
 import org.apache.commons.lang3.StringUtils
 import sun.net.www.protocol.file.FileURLConnection
 
-import java.io.BufferedWriter
-import java.io.File
-import java.io.FileNotFoundException
-import java.io.FileWriter
-import java.io.IOException
-import java.io.InputStream
-import java.io.PrintWriter
+import java.io.*
 import java.lang.management.GarbageCollectorMXBean
 import java.lang.management.ManagementFactory
 import java.net.JarURLConnection
@@ -19,12 +13,7 @@ import java.net.URLConnection
 import java.nio.charset.Charset
 import java.security.MessageDigest
 import java.text.DecimalFormat
-import java.util.ArrayList
-import java.util.Enumeration
-import java.util.HashMap
-import java.util.Scanner
-import java.util.TreeSet
-import java.util.UUID
+import java.util.*
 import java.util.jar.JarEntry
 import java.util.jar.JarFile
 

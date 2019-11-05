@@ -41,8 +41,9 @@ class TestInference(private val testFile: String) {
 
     fun generateRefs(analyzer: Analyzer) {
         val refs = ArrayList<Map<String, Any>>()
-        for ((key, bindings) in analyzer.references) {
-            var filename: String? = key.file
+        for (node in analyzer.references.keys()) {
+            var filename: String? = node.file
+            val bindings = analyzer.references.get(node)
 
             // only record those in the testFile
             if (filename != null && filename.startsWith(Analyzer.self.projectDir!!)) {
@@ -50,19 +51,19 @@ class TestInference(private val testFile: String) {
                 val writeout = LinkedHashMap<String, Any>()
 
                 val ref = LinkedHashMap<String, Any>()
-                ref["name"] = key.name
+                ref["name"] = node.name
                 ref["file"] = filename
-                ref["start"] = key.start
-                ref["end"] = key.end
-                ref["line"] = key.line
-                ref["col"] = key.col
+                ref["start"] = node.start
+                ref["end"] = node.end
+                ref["line"] = node.line
+                ref["col"] = node.col
 
                 val dests = ArrayList<Map<String, Any>>()
                 Collections.sort(bindings) { a, b -> if (a.start == b.start) a.end - b.end else a.start - b.start }
                 for (b in bindings) {
                     var destFile = b.file
-                    if (destFile != null && destFile!!.startsWith(Analyzer.self.projectDir!!)) {
-                        destFile = `$`.projRelPath(destFile!!).replace("\\\\".toRegex(), "/")
+                    if (destFile != null && destFile.startsWith(Analyzer.self.projectDir!!)) {
+                        destFile = `$`.projRelPath(destFile).replace("\\\\".toRegex(), "/")
                         val dest = LinkedHashMap<String, Any>()
                         dest["name"] = b.name
                         dest["file"] = destFile
@@ -101,7 +102,7 @@ class TestInference(private val testFile: String) {
             val dummy = makeDummy(refMap)
 
             val dests = r.get("dests") as List<*>
-            val actual = analyzer.references[dummy]
+            val actual = analyzer.references.get(dummy)
 
             for (d in dests) {
                 val name1 = refMap.get("name") as String

@@ -42,7 +42,7 @@ interface Visitor0<T> {
             NodeType.INDEX -> return visit(node as Index)
             NodeType.KEYWORD -> return visit(node as Keyword)
             NodeType.LISTCOMP -> return visit(node as ListComp)
-            NodeType.MODULE -> return visit(node as Module)
+            NodeType.MODULE -> return visit(node as PyModule)
             NodeType.NAME -> return visit(node as Name)
             NodeType.NODE -> return visit(node)
             NodeType.PASS -> return visit(node as Pass)
@@ -126,7 +126,7 @@ interface Visitor0<T> {
     fun visit(node: Index): T
     fun visit(node: Keyword): T
     fun visit(node: ListComp): T
-    fun visit(node: Module): T
+    fun visit(node: PyModule): T
     fun visit(node: Name): T
     fun visit(node: Pass): T
     fun visit(node: Print): T

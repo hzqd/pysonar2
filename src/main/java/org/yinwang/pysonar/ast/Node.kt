@@ -39,7 +39,7 @@ abstract class Node : java.io.Serializable, Comparable<Any> {
                 body = this.body
             } else if (this is ClassDef) {
                 body = this.body
-            } else if (this is Module) {
+            } else if (this is PyModule) {
                 body = this.body
             }
 

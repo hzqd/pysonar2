@@ -51,22 +51,20 @@ internal class Linker
 
         // highlight definitions
         `$`.msg("\nAdding ref links")
-        progress = Progress(analyzer.references.size.toLong(), 50)
+        progress = Progress(analyzer.references.size().toLong(), 50)
 
-        for ((key, value) in analyzer.references) {
+        for (node in analyzer.references.keys()) {
             if (Analyzer.self.hasOption("debug")) {
-                processRefDebug(key, value)
+                processRefDebug(node, analyzer.references.get(node))
             } else {
-                processRef(key, value)
+                processRef(node, analyzer.references.get(node))
             }
             progress.tick()
         }
 
         if (Analyzer.self.hasOption("report")) {
-            for (ld in analyzer.semanticErrors.values) {
-                for (d in ld) {
-                    processDiagnostic(d)
-                }
+            for (d in analyzer.semanticErrors.values()) {
+                processDiagnostic(d)
             }
         }
     }

@@ -4,9 +4,9 @@ import org.yinwang.pysonar.`$`
 import org.yinwang.pysonar.Analyzer
 import org.yinwang.pysonar.Binding
 import org.yinwang.pysonar.Builtins
+import org.yinwang.pysonar.CallStackEntry
 import org.yinwang.pysonar.State
 import org.yinwang.pysonar.ast.*
-import org.yinwang.pysonar.CallStackEntry
 import org.yinwang.pysonar.types.ClassType
 import org.yinwang.pysonar.types.DictType
 import org.yinwang.pysonar.types.FunType
@@ -34,8 +34,8 @@ import java.util.HashMap
 
 class TypeInferencer : Visitor1<Type, State> {
 
-    override fun visit(node: Module, s: State): Type {
-        val mt = ModuleType(node.name, node.file, Analyzer.self.globaltable)
+    override fun visit(node: PyModule, s: State): Type {
+        val mt = ModuleType(node.name!!, node.file, Analyzer.self.globaltable)
         s.insert(`$`.moduleQname(node.file), node, mt, MODULE)
         if (node.body != null) {
             visit(node.body, mt.table)
@@ -101,19 +101,20 @@ class TypeInferencer : Visitor1<Type, State> {
             return ltype
         } else if (ltype.typeEquals(rtype)) {
             return ltype
-        } else if (node.op === Op.Or) {
+        } else if (node.op == Op.Or) {
             if (rtype === Types.NoneInstance) {
                 return ltype
             } else if (ltype === Types.NoneInstance) {
                 return rtype
             }
-        } else if (node.op === Op.And) {
+        } else if (node.op == Op.And) {
             if (rtype === Types.NoneInstance || ltype === Types.NoneInstance) {
                 return Types.NoneInstance
             }
         }
 
-        addWarningToNode(node, "Cannot apply binary operator " + node.op.rep + " to type " + ltype + " and " + rtype)
+        addWarningToNode(node,
+                "Cannot apply binary operator " + node.op.rep + " to type " + ltype + " and " + rtype)
         return Types.UNKNOWN
     }
 
@@ -200,7 +201,7 @@ class TypeInferencer : Visitor1<Type, State> {
         }
 
         // Infer positional argument types
-        val positional = visit<out Node, Type>(node.args, s)
+        val positional = visit<Node, Type>(node.args, s)
 
         // Infer keyword argument types
         val kwTypes = HashMap<String, Type>()
@@ -263,7 +264,7 @@ class TypeInferencer : Visitor1<Type, State> {
 
     override fun visit(node: Comprehension, s: State): Type {
         bindIter(s, node.target, node.iter, SCOPE)
-        visit<out Node, Type>(node.ifs, s)
+        visit<Node, Type>(node.ifs, s)
         return visit(node.target, s)
     }
 
@@ -589,7 +590,7 @@ class TypeInferencer : Visitor1<Type, State> {
             visit(node.dest, s)
         }
         if (node.values != null) {
-            visit<out Node, Type>(node.values, s)
+            visit<Node, Type>(node.values, s)
         }
         return Types.CONT
     }
@@ -1033,7 +1034,7 @@ class TypeInferencer : Visitor1<Type, State> {
             var i = 0
             var j = 0
             while (i < pSize) {
-                val arg = args[i]
+                val arg = args!![i]
                 val aType: Type
                 if (i < aSize) {
                     aType = pTypes!![i]

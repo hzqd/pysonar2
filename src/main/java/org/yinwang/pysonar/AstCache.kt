@@ -1,6 +1,6 @@
 package org.yinwang.pysonar
 
-import org.yinwang.pysonar.ast.Module
+import org.yinwang.pysonar.ast.PyModule
 import org.yinwang.pysonar.ast.Node
 
 import java.io.*
@@ -119,7 +119,7 @@ class AstCache {
 
 
     // package-private for testing
-    internal fun getSerializedModule(sourcePath: String): Module? {
+    internal fun getSerializedModule(sourcePath: String): PyModule? {
         if (!File(sourcePath).canRead()) {
             return null
         }
@@ -131,14 +131,14 @@ class AstCache {
 
 
     // package-private for testing
-    internal fun deserialize(sourcePath: String): Module? {
+    internal fun deserialize(sourcePath: String): PyModule? {
         val cachePath = getCachePath(sourcePath)
         var fis: FileInputStream? = null
         var ois: ObjectInputStream? = null
         try {
             fis = FileInputStream(cachePath)
             ois = ObjectInputStream(fis)
-            return ois.readObject() as Module
+            return ois.readObject() as PyModule
         } catch (e: Exception) {
             return null
         } finally {

@@ -12,7 +12,6 @@ import org.yinwang.pysonar.types.UnionType
 
 import java.io.*
 import java.util.*
-import kotlin.collections.Map.Entry
 import java.util.logging.Level
 import java.util.logging.Logger
 
@@ -41,10 +40,11 @@ object JSONDump {
         idx.analyze(srcpath)
         idx.finish()
 
-        if (idx.semanticErrors.size > 0) {
+        if (idx.semanticErrors.size() > 0) {
             log.info("Analyzer errors:")
-            for ((k, diagnostics) in idx.semanticErrors) {
-                log.info("  Key: $k")
+            for (file in idx.semanticErrors.keys()) {
+                log.info("  File: $file")
+                val diagnostics = idx.semanticErrors.get(file)
                 for (d in diagnostics) {
                     log.info("    $d")
                 }
